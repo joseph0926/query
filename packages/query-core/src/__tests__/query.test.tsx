@@ -1279,4 +1279,45 @@ describe('query', () => {
     await vi.advanceTimersByTimeAsync(50)
     expect(query.state.data).toBe('data')
   })
+
+  test('should prevent revert when disabled observer is added after removal', async () => {
+    const key = queryKey()
+
+    const queryFn = vi.fn(async ({ signal: _signal }) => {
+      await sleep(50)
+      return 'data'
+    })
+
+    const query = new Query({
+      client: queryClient,
+      queryKey: key,
+      queryHash: hashQueryKeyByOptions(key),
+      options: { queryFn },
+    })
+
+    const observer1 = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn,
+    })
+
+    query.addObserver(observer1)
+    const promise1 = query.fetch()
+
+    await vi.advanceTimersByTimeAsync(10)
+
+    query.removeObserver(observer1)
+
+    const observer2 = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn,
+      enabled: false,
+    })
+
+    query.addObserver(observer2)
+
+    await expect(promise1).rejects.toBeInstanceOf(CancelledError)
+
+    expect(query.state.fetchStatus).toBe('fetching')
+    expect(query.state.data).toBeUndefined()
+  })
 })

@@ -556,7 +556,7 @@ export class Query<
           // If cancellation was caused by observer removal and there are active observers again,
           // do not revert to idle: a new fetch may already be in flight, and reverting would
           // incorrectly flip isLoading/isFetching to false under StrictMode remounts.
-          if (error.isObserverRemoval && this.isActive()) {
+          if (error.isObserverRemoval && this.observers.length > 0) {
             if (this.state.data === undefined) {
               throw error
             }
